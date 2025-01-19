@@ -216,21 +216,21 @@ ngx_http_log_var_set(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
         return NGX_CONF_ERROR;
     }
 
-    if (cf->args->nelts == 3) {
+    if (cf->args->nelts == 4) {
 
-        if (ngx_strncmp(value[2].data, "if=", 3) == 0) {
-            s.len = value[2].len - 3;
-            s.data = value[2].data + 3;
+        if (ngx_strncmp(value[3].data, "if=", 3) == 0) {
+            s.len = value[3].len - 3;
+            s.data = value[3].data + 3;
             lv->negative = 0;
 
-        } else if (ngx_strncmp(value[2].data, "if!=", 4) == 0) {
-            s.len = value[2].len - 4;
-            s.data = value[2].data + 4;
+        } else if (ngx_strncmp(value[3].data, "if!=", 4) == 0) {
+            s.len = value[3].len - 4;
+            s.data = value[3].data + 4;
             lv->negative = 1;
 
         } else {
             ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                "invalid parameter \"%V\"", &value[2]);
+                "invalid parameter \"%V\"", &value[3]);
             return NGX_CONF_ERROR;
         }
 
