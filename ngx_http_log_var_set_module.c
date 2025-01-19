@@ -162,6 +162,7 @@ ngx_http_log_var_set(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     ngx_str_t                         *value;
     ngx_http_variable_t               *v;
     ngx_http_log_var_set_variable_t   *lv;
+    ngx_str_t                          s;
     ngx_http_compile_complex_value_t   ccv;
 
     value = cf->args->elts;
