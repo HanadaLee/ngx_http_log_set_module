@@ -54,6 +54,7 @@ To use theses modules, configure your nginx branch with `--add-module=/path/to/n
 **Context:** *http, server, location*
 
 Sets the request variable to the given value before access log writing. The value may contain variables from request or response, such as $upstream_http_*.
+These directives are inherited from the previous configuration level only when there is no directive for the same variable defined at the current level.
 
 # Author
 
