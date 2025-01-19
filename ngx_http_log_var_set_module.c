@@ -10,14 +10,16 @@
 
 
 typedef struct {
-    ngx_int_t                 index;
-    ngx_http_complex_value_t  value;
-    ngx_http_set_variable_pt  set_handler;
+    ngx_int_t                  index;
+    ngx_http_complex_value_t   value;
+    ngx_http_set_variable_pt   set_handler;
+    ngx_http_complex_value_t  *filter;
+    ngx_int_t                  negative;
 } ngx_http_log_var_set_variable_t;
 
 
 typedef struct {
-    ngx_array_t              *vars;
+    ngx_array_t               *vars;
 } ngx_http_log_var_set_loc_conf_t;
 
 
@@ -35,7 +37,7 @@ static ngx_int_t ngx_http_log_var_set_init(ngx_conf_t *cf);
 static ngx_command_t  ngx_http_log_var_set_commands[] = {
 
     { ngx_string("log_var_set"),
-      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE2,
+      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE23,
       ngx_http_log_var_set,
       NGX_HTTP_LOC_CONF_OFFSET,
       0,
@@ -102,6 +104,24 @@ ngx_http_log_var_set_handler(ngx_http_request_t *r)
     last = lv + llcf->vars->nelts;
 
     while (lv < last) {
+
+        if (lv->filter) {
+            if (ngx_http_complex_value(r, lv->filter, &val)
+                    != NGX_OK) {
+                return NGX_ERROR;
+            }
+
+            if (val.len == 0 || (val.len == 1 && val.data[0] == '0')) {
+                if (!lv->negative) {
+                    continue;
+                }
+            } else {
+                if (lv->negative) {
+                    continue;
+                }
+            }
+        }
+
         /*
          * explicitly set new value to make sure it will be available after
          * internal redirects
@@ -195,6 +215,45 @@ ngx_http_log_var_set(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
         return NGX_CONF_ERROR;
     }
 
+    if (cf->args->nelts == 3) {
+
+        if (ngx_strncmp(value[2].data, "if=", 3) == 0) {
+            s.len = value[2].len - 3;
+            s.data = value[2].data + 3;
+            lv->negative = 0;
+
+        } else if (ngx_strncmp(value[2].data, "if!=", 4) == 0) {
+            s.len = value[2].len - 4;
+            s.data = value[2].data + 4;
+            lv->negative = 1;
+
+        } else {
+            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
+                "invalid parameter \"%V\"", &value[2]);
+            return NGX_CONF_ERROR;
+        }
+
+        ngx_memzero(&ccv, sizeof(ngx_http_compile_complex_value_t));
+
+        ccv.cf = cf;
+        ccv.value = &s;
+        ccv.complex_value = ngx_palloc(cf->pool,
+                                    sizeof(ngx_http_complex_value_t));
+        if (ccv.complex_value == NULL) {
+            return NGX_CONF_ERROR;
+        }
+
+        if (ngx_http_compile_complex_value(&ccv) != NGX_OK) {
+            return NGX_CONF_ERROR;
+        }
+
+        lv->filter = ccv.complex_value;
+
+    } else {
+        lv->negative = 0;
+        lv->filter = NULL;
+    }
+
     return NGX_CONF_OK;
 }
 
@@ -234,13 +293,8 @@ ngx_http_log_var_set_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
     ngx_http_log_var_set_loc_conf_t  *prev = parent;
     ngx_http_log_var_set_loc_conf_t  *conf = child;
 
-    ngx_http_log_var_set_variable_t  *pvars, *cvars;
+    ngx_http_log_var_set_variable_t  *pvars, *cvars, *new_var;
     ngx_uint_t                        i, j, found;
-    ngx_http_log_var_set_variable_t  *pv;
-    ngx_http_log_var_set_variable_t  *new_var;
-
-
-    ngx_conf_merge_ptr_value(conf->vars, prev->vars, NULL);
 
     if (conf->vars == NGX_CONF_UNSET_PTR) {
         conf->vars = (prev->vars == NGX_CONF_UNSET_PTR) ? NULL : prev->vars;
@@ -256,11 +310,10 @@ ngx_http_log_var_set_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
 
     for (i = 0; i < prev->vars->nelts; i++) {
 
-        pv = &pvars[i];
         found = 0;
 
         for (j = 0; j < conf->vars->nelts; j++) {
-            if (cvars[j].index == pv->index) {
+            if (cvars[j].index == pvars[i].index) {
                 found = 1;
                 break;
             }
@@ -273,7 +326,7 @@ ngx_http_log_var_set_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
                 return NGX_CONF_ERROR;
             }
 
-            *new_var = *pv;
+            *new_var = pvars[i];
         }
     }
 

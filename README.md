@@ -10,7 +10,7 @@
 - [Synopsis](#synopsis)
 - [Installation](#installation)
 - [Directives](#directives)
-	- [log\_var\_set](#log_var_set)
+  - [log\_var\_set](#log_var_set)
 - [Author](#author)
 - [License](#license)
 
@@ -47,7 +47,7 @@ To use theses modules, configure your nginx branch with `--add-module=/path/to/n
 
 ## log_var_set
 
-**Syntax:** *log_var_set $variable value;*
+**Syntax:** *log_var_set $variable value [if=condition];*
 
 **Default:** *-*
 
