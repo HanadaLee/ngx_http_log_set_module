@@ -296,8 +296,9 @@ ngx_http_log_var_set_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
     ngx_http_log_var_set_loc_conf_t  *prev = parent;
     ngx_http_log_var_set_loc_conf_t  *conf = child;
 
-    ngx_http_log_var_set_variable_t  *pvars, *cvars, *new_var;
+    ngx_http_log_var_set_variable_t  *pvars, *cvars, *nvar;
     ngx_uint_t                        i, j, found;
+    ngx_uint_t                        cvars_nelts;
 
     if (conf->vars == NGX_CONF_UNSET_PTR) {
         conf->vars = (prev->vars == NGX_CONF_UNSET_PTR) ? NULL : prev->vars;
@@ -309,13 +310,12 @@ ngx_http_log_var_set_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
     }
 
     pvars = prev->vars->elts;
-    cvars = conf->vars->elts;
-
+    cvars_nelts = conf->vars->nelts;
     for (i = 0; i < prev->vars->nelts; i++) {
-
+        cvars = conf->vars->elts;
         found = 0;
 
-        for (j = 0; j < conf->vars->nelts; j++) {
+        for (j = 0; j < cvars_neltss; j++) {
             if (cvars[j].index == pvars[i].index) {
                 found = 1;
                 break;
@@ -323,13 +323,12 @@ ngx_http_log_var_set_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
         }
 
         if (!found) {
-
-            new_var = ngx_array_push(conf->vars);
-            if (new_var == NULL) {
+            nvar = ngx_array_push(conf->vars);
+            if (nvar == NULL) {
                 return NGX_CONF_ERROR;
             }
 
-            *new_var = pvars[i];
+            *nvar = pvars[i];
         }
     }
 
