@@ -315,7 +315,7 @@ ngx_http_log_var_set_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
         cvars = conf->vars->elts;
         found = 0;
 
-        for (j = 0; j < cvars_neltss; j++) {
+        for (j = 0; j < cvars_nelts; j++) {
             if (cvars[j].index == pvars[i].index) {
                 found = 1;
                 break;
