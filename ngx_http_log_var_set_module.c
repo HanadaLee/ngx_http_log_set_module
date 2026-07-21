@@ -8,13 +8,21 @@
 #include <ngx_core.h>
 #include <ngx_http.h>
 
+#if (NGX_CONDITION)
+#include <ngx_http_condition_module.h>
+#endif
+
 
 typedef struct {
     ngx_int_t                  index;
     ngx_http_complex_value_t   value;
     ngx_http_set_variable_pt   set_handler;
+#if (NGX_CONDITION)
+    ngx_condition_expr_id_t    expr_id;
+#else
     ngx_http_complex_value_t  *filter;
     ngx_int_t                  negative;
+#endif
 } ngx_http_log_var_set_variable_t;
 
 
@@ -37,7 +45,13 @@ static ngx_int_t ngx_http_log_var_set_init(ngx_conf_t *cf);
 static ngx_command_t  ngx_http_log_var_set_commands[] = {
 
     { ngx_string("log_var_set"),
-      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE23,
+      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF
+#if (NGX_CONDITION)
+                        |NGX_HTTP_MAIN_WHEN_CONF|NGX_HTTP_SRV_WHEN_CONF
+                        |NGX_HTTP_LOC_WHEN_CONF|NGX_CONF_TAKE2,
+#else
+                        |NGX_CONF_TAKE23,
+#endif
       ngx_http_log_var_set,
       NGX_HTTP_LOC_CONF_OFFSET,
       0,
@@ -105,6 +119,14 @@ ngx_http_log_var_set_handler(ngx_http_request_t *r)
 
     while (lv < last) {
 
+#if (NGX_CONDITION)
+        if (ngx_http_condition_get_expr_result(r, lv->expr_id)
+            != NGX_CONDITION_EXPR_HIT)
+        {
+            lv++;
+            continue;
+        }
+#else
         if (lv->filter) {
             if (ngx_http_complex_value(r, lv->filter, &val)
                     != NGX_OK) {
@@ -123,6 +145,7 @@ ngx_http_log_var_set_handler(ngx_http_request_t *r)
                 }
             }
         }
+#endif
 
         /*
          * explicitly set new value to make sure it will be available after
@@ -191,6 +214,10 @@ ngx_http_log_var_set(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
         return NGX_CONF_ERROR;
     }
 
+#if (NGX_CONDITION)
+    lv->expr_id = ngx_condition_get_associated_expr_id(cf);
+#endif
+
     v = ngx_http_add_variable(cf, &value[1], NGX_HTTP_VAR_CHANGEABLE);
     if (v == NULL) {
         return NGX_CONF_ERROR;
@@ -218,6 +245,7 @@ ngx_http_log_var_set(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
         return NGX_CONF_ERROR;
     }
 
+#if !(NGX_CONDITION)
     if (cf->args->nelts == 4) {
 
         if (ngx_strncmp(value[3].data, "if=", 3) == 0) {
@@ -256,6 +284,7 @@ ngx_http_log_var_set(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
         lv->negative = 0;
         lv->filter = NULL;
     }
+#endif
 
     return NGX_CONF_OK;
 }

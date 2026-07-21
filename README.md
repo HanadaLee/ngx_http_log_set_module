@@ -9,6 +9,7 @@
 - [Status](#status)
 - [Synopsis](#synopsis)
 - [Installation](#installation)
+- [Conditional syntax](#conditional-syntax)
 - [Directives](#directives)
   - [log\_var\_set](#log_var_set)
 - [Author](#author)
@@ -33,7 +34,10 @@ server {
 
     location / {
         log_var_set $log_field1 $upstream_http_custom_header1;
-        log_var_set $log_field2 $upstream_http_custom_header2;
+        condition has_field2 is_not_empty $upstream_http_custom_header2;
+        when has_field2 {
+            log_var_set $log_field2 $upstream_http_custom_header2;
+        }
         proxy_pass http://example.upstream.com;
     }
 }
@@ -43,15 +47,21 @@ server {
 
 To use theses modules, configure your nginx branch with `--add-module=/path/to/ngx_http_log_var_set_module`.
 
+To enable named conditions, build `ngx_condition_module` and this module statically in the same nginx configuration.
+
+# Conditional syntax
+
+Conditional syntax is selected at compile time. With `ngx_condition_module`, place `log_var_set` inside an `http`, `server`, or `location` `when` block; `if=` and `if!=` are rejected. Without it, `when` is unavailable and legacy `if=`/`if!=` remain supported. A rule whose condition does not match is skipped so the next definition of the same variable can be evaluated.
+
 # Directives
 
 ## log_var_set
 
-**Syntax:** *log_var_set $variable value [if=condition];*
+**Syntax:** *log_var_set $variable value;*
 
 **Default:** *-*
 
-**Context:** *http, server, location*
+**Context:** *http, server, location, http when, server when, location when*
 
 Sets the request variable to the given value before access log writing. The value may contain variables from request or response, such as $upstream_http_*.
 These directives are inherited from the previous configuration level only when there is no directive for the same variable defined at the current level.
