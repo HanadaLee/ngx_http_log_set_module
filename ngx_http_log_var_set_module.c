@@ -32,7 +32,7 @@ typedef struct {
 
 
 static ngx_int_t ngx_http_log_var_set_handler(ngx_http_request_t *r);
-static char * ngx_http_log_var_set(ngx_conf_t *cf, ngx_command_t *cmd,
+static char *ngx_http_log_var_set(ngx_conf_t *cf, ngx_command_t *cmd,
     void *conf);
 static ngx_int_t ngx_http_log_var_set_variable(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data);
@@ -128,8 +128,7 @@ ngx_http_log_var_set_handler(ngx_http_request_t *r)
         }
 #else
         if (lv->filter) {
-            if (ngx_http_complex_value(r, lv->filter, &val)
-                    != NGX_OK) {
+            if (ngx_http_complex_value(r, lv->filter, &val) != NGX_OK) {
                 return NGX_ERROR;
             }
 
@@ -138,6 +137,7 @@ ngx_http_log_var_set_handler(ngx_http_request_t *r)
                     lv++;
                     continue;
                 }
+
             } else {
                 if (lv->negative) {
                     lv++;
@@ -260,7 +260,7 @@ ngx_http_log_var_set(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
         } else {
             ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                "invalid parameter \"%V\"", &value[3]);
+                               "invalid parameter \"%V\"", &value[3]);
             return NGX_CONF_ERROR;
         }
 
@@ -269,7 +269,7 @@ ngx_http_log_var_set(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
         ccv.cf = cf;
         ccv.value = &s;
         ccv.complex_value = ngx_palloc(cf->pool,
-                                    sizeof(ngx_http_complex_value_t));
+                                       sizeof(ngx_http_complex_value_t));
         if (ccv.complex_value == NULL) {
             return NGX_CONF_ERROR;
         }
