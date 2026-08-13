@@ -23,28 +23,27 @@ typedef struct {
     ngx_http_complex_value_t  *filter;
     ngx_int_t                  negative;
 #endif
-} ngx_http_log_var_set_variable_t;
+} ngx_http_log_set_variable_t;
 
 
 typedef struct {
     ngx_array_t               *vars;
-} ngx_http_log_var_set_loc_conf_t;
+} ngx_http_log_set_loc_conf_t;
 
 
-static ngx_int_t ngx_http_log_var_set_handler(ngx_http_request_t *r);
-static char *ngx_http_log_var_set(ngx_conf_t *cf, ngx_command_t *cmd,
-    void *conf);
-static ngx_int_t ngx_http_log_var_set_variable(ngx_http_request_t *r,
+static ngx_int_t ngx_http_log_set_handler(ngx_http_request_t *r);
+static char *ngx_http_log_set(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
+static ngx_int_t ngx_http_log_set_variable(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data);
-static void *ngx_http_log_var_set_create_loc_conf(ngx_conf_t *cf);
-static char *ngx_http_log_var_set_merge_loc_conf(ngx_conf_t *cf,
-    void *parent, void *child);
-static ngx_int_t ngx_http_log_var_set_init(ngx_conf_t *cf);
+static void *ngx_http_log_set_create_loc_conf(ngx_conf_t *cf);
+static char *ngx_http_log_set_merge_loc_conf(ngx_conf_t *cf, void *parent,
+    void *child);
+static ngx_int_t ngx_http_log_set_init(ngx_conf_t *cf);
 
 
-static ngx_command_t  ngx_http_log_var_set_commands[] = {
+static ngx_command_t  ngx_http_log_set_commands[] = {
 
-    { ngx_string("log_var_set"),
+    { ngx_string("log_set"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF
 #if (NGX_CONDITION)
                         |NGX_HTTP_MAIN_WHEN_CONF|NGX_HTTP_SRV_WHEN_CONF
@@ -52,7 +51,7 @@ static ngx_command_t  ngx_http_log_var_set_commands[] = {
 #else
                         |NGX_CONF_TAKE23,
 #endif
-      ngx_http_log_var_set,
+      ngx_http_log_set,
       NGX_HTTP_LOC_CONF_OFFSET,
       0,
       NULL },
@@ -61,9 +60,9 @@ static ngx_command_t  ngx_http_log_var_set_commands[] = {
 };
 
 
-static ngx_http_module_t  ngx_http_log_var_set_module_ctx = {
+static ngx_http_module_t  ngx_http_log_set_module_ctx = {
     NULL,                                   /* preconfiguration */
-    ngx_http_log_var_set_init,              /* postconfiguration */
+    ngx_http_log_set_init,                  /* postconfiguration */
 
     NULL,                                   /* create main conf */
     NULL,                                   /* init main conf */
@@ -71,15 +70,15 @@ static ngx_http_module_t  ngx_http_log_var_set_module_ctx = {
     NULL,                                   /* create srv conf */
     NULL,                                   /* merge srv conf */
 
-    ngx_http_log_var_set_create_loc_conf,   /* create loc conf */
-    ngx_http_log_var_set_merge_loc_conf     /* merge loc conf */
+    ngx_http_log_set_create_loc_conf,       /* create loc conf */
+    ngx_http_log_set_merge_loc_conf         /* merge loc conf */
 };
 
 
-ngx_module_t  ngx_http_log_var_set_module = {
+ngx_module_t  ngx_http_log_set_module = {
     NGX_MODULE_V1,
-    &ngx_http_log_var_set_module_ctx,       /* module context */
-    ngx_http_log_var_set_commands,          /* module directives */
+    &ngx_http_log_set_module_ctx,           /* module context */
+    ngx_http_log_set_commands,              /* module directives */
     NGX_HTTP_MODULE,                        /* module type */
     NULL,                                   /* init master */
     NULL,                                   /* init module */
@@ -93,19 +92,19 @@ ngx_module_t  ngx_http_log_var_set_module = {
 
 
 static ngx_int_t
-ngx_http_log_var_set_handler(ngx_http_request_t *r)
+ngx_http_log_set_handler(ngx_http_request_t *r)
 {
     ngx_str_t                          val;
     ngx_http_variable_t               *v;
     ngx_http_variable_value_t         *vv;
-    ngx_http_log_var_set_loc_conf_t   *llcf;
-    ngx_http_log_var_set_variable_t   *lv, *last;
+    ngx_http_log_set_loc_conf_t       *llcf;
+    ngx_http_log_set_variable_t       *lv, *last;
     ngx_http_core_main_conf_t         *cmcf;
 
     ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                   "log var set handler");
+                   "log set handler");
 
-    llcf = ngx_http_get_module_loc_conf(r, ngx_http_log_var_set_module);
+    llcf = ngx_http_get_module_loc_conf(r, ngx_http_log_set_module);
 
     if (llcf->vars == NULL) {
         return NGX_OK;
@@ -180,13 +179,13 @@ ngx_http_log_var_set_handler(ngx_http_request_t *r)
 
 
 static char *
-ngx_http_log_var_set(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
+ngx_http_log_set(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 {
-    ngx_http_log_var_set_loc_conf_t *llcf = conf;
+    ngx_http_log_set_loc_conf_t *llcf = conf;
 
     ngx_str_t                         *value;
     ngx_http_variable_t               *v;
-    ngx_http_log_var_set_variable_t   *lv;
+    ngx_http_log_set_variable_t       *lv;
     ngx_str_t                          s;
     ngx_http_compile_complex_value_t   ccv;
 
@@ -203,7 +202,7 @@ ngx_http_log_var_set(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
     if (llcf->vars == NGX_CONF_UNSET_PTR) {
         llcf->vars = ngx_array_create(cf->pool, 1,
-                                      sizeof(ngx_http_log_var_set_variable_t));
+                                      sizeof(ngx_http_log_set_variable_t));
         if (llcf->vars == NULL) {
             return NGX_CONF_ERROR;
         }
@@ -229,7 +228,7 @@ ngx_http_log_var_set(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     }
 
     if (v->get_handler == NULL) {
-        v->get_handler = ngx_http_log_var_set_variable;
+        v->get_handler = ngx_http_log_set_variable;
         v->data = (uintptr_t) lv;
     }
 
@@ -291,11 +290,11 @@ ngx_http_log_var_set(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
 
 static ngx_int_t
-ngx_http_log_var_set_variable(ngx_http_request_t *r,
-    ngx_http_variable_value_t *v, uintptr_t data)
+ngx_http_log_set_variable(ngx_http_request_t *r, ngx_http_variable_value_t *v,
+    uintptr_t data)
 {
     ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                   "log var set variable");
+                   "log set variable");
 
     v->not_found = 1;
 
@@ -304,11 +303,11 @@ ngx_http_log_var_set_variable(ngx_http_request_t *r,
 
 
 static void *
-ngx_http_log_var_set_create_loc_conf(ngx_conf_t *cf)
+ngx_http_log_set_create_loc_conf(ngx_conf_t *cf)
 {
-    ngx_http_log_var_set_loc_conf_t *conf;
+    ngx_http_log_set_loc_conf_t *conf;
 
-    conf = ngx_pcalloc(cf->pool, sizeof(ngx_http_log_var_set_loc_conf_t));
+    conf = ngx_pcalloc(cf->pool, sizeof(ngx_http_log_set_loc_conf_t));
     if (conf == NULL) {
         return NULL;
     }
@@ -320,14 +319,14 @@ ngx_http_log_var_set_create_loc_conf(ngx_conf_t *cf)
 
 
 static char *
-ngx_http_log_var_set_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
+ngx_http_log_set_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
 {
-    ngx_http_log_var_set_loc_conf_t  *prev = parent;
-    ngx_http_log_var_set_loc_conf_t  *conf = child;
+    ngx_http_log_set_loc_conf_t  *prev = parent;
+    ngx_http_log_set_loc_conf_t  *conf = child;
 
-    ngx_http_log_var_set_variable_t  *pvars, *cvars, *nvar;
-    ngx_uint_t                        i, j, found;
-    ngx_uint_t                        cvars_nelts;
+    ngx_http_log_set_variable_t  *pvars, *cvars, *nvar;
+    ngx_uint_t                    i, j, found;
+    ngx_uint_t                    cvars_nelts;
 
     if (conf->vars == NGX_CONF_UNSET_PTR) {
         conf->vars = (prev->vars == NGX_CONF_UNSET_PTR) ? NULL : prev->vars;
@@ -366,7 +365,7 @@ ngx_http_log_var_set_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
 
 
 static ngx_int_t
-ngx_http_log_var_set_init(ngx_conf_t *cf)
+ngx_http_log_set_init(ngx_conf_t *cf)
 {
     ngx_http_handler_pt        *h;
     ngx_http_core_main_conf_t  *cmcf;
@@ -383,11 +382,10 @@ ngx_http_log_var_set_init(ngx_conf_t *cf)
 
     if (arr->nelts > 1) {
         h = arr->elts;
-        ngx_memmove(&h[1], h,
-                    (arr->nelts - 1) * sizeof(ngx_http_handler_pt));
+        ngx_memmove(&h[1], h, (arr->nelts - 1) * sizeof(ngx_http_handler_pt));
     }
 
-    *h = ngx_http_log_var_set_handler;
+    *h = ngx_http_log_set_handler;
 
     return NGX_OK;
 }
