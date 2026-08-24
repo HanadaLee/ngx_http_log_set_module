@@ -95,6 +95,8 @@ static ngx_int_t
 ngx_http_log_set_handler(ngx_http_request_t *r)
 {
     ngx_str_t                          val;
+    ngx_int_t                         *set;
+    ngx_uint_t                         i, nset;
     ngx_http_variable_t               *v;
     ngx_http_variable_value_t         *vv;
     ngx_http_log_set_loc_conf_t       *llcf;
@@ -115,8 +117,25 @@ ngx_http_log_set_handler(ngx_http_request_t *r)
 
     lv = llcf->vars->elts;
     last = lv + llcf->vars->nelts;
+    nset = 0;
+
+    set = ngx_pnalloc(r->pool, llcf->vars->nelts * sizeof(ngx_int_t));
+    if (set == NULL) {
+        return NGX_ERROR;
+    }
 
     while (lv < last) {
+
+        for (i = 0; i < nset; i++) {
+            if (set[i] == lv->index) {
+                break;
+            }
+        }
+
+        if (i != nset) {
+            lv++;
+            continue;
+        }
 
 #if (NGX_CONDITION)
         if (ngx_http_condition_get_expr_result(r, lv->expr_id)
@@ -171,6 +190,8 @@ ngx_http_log_set_handler(ngx_http_request_t *r)
             lv->set_handler(r, vv, v[lv->index].data);
         }
 
+        set[nset++] = lv->index;
+
         lv++;
     }
 
@@ -186,7 +207,9 @@ ngx_http_log_set(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     ngx_str_t                         *value;
     ngx_http_variable_t               *v;
     ngx_http_log_set_variable_t       *lv;
+#if !(NGX_CONDITION)
     ngx_str_t                          s;
+#endif
     ngx_http_compile_complex_value_t   ccv;
 
     value = cf->args->elts;
