@@ -34,7 +34,7 @@ server {
 
     location / {
         log_set $log_field1 $upstream_http_custom_header1;
-        condition has_field2 is_not_empty $upstream_http_custom_header2;
+        expr has_field2 !is_empty $upstream_http_custom_header2;
         when has_field2 {
             log_set $log_field2 $upstream_http_custom_header2;
         }
@@ -47,11 +47,11 @@ server {
 
 To use theses modules, configure your nginx branch with `--add-module=/path/to/ngx_http_log_set_module`.
 
-To enable named conditions, build `ngx_condition_module` and this module statically in the same nginx configuration.
+To enable named conditions, build `ngx_expr_module` and this module statically in the same nginx configuration.
 
 # Conditional syntax
 
-Conditional syntax is selected at compile time. With `ngx_condition_module`, place `log_set` inside an `http`, `server`, or `location` `when` block; `if=` and `if!=` are rejected. Without it, `when` is unavailable and legacy `if=`/`if!=` remain supported. A rule whose condition does not match is skipped so the next definition of the same variable can be evaluated.
+Conditional syntax is selected at compile time. With `ngx_expr_module`, place `log_set` inside an `http`, `server`, or `location` `when` block; `if=` and `if!=` are rejected. Without it, `when` is unavailable and legacy `if=`/`if!=` remain supported. A rule whose condition does not match is skipped so the next definition of the same variable can be evaluated.
 
 # Directives
 

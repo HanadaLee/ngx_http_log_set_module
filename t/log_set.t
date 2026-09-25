@@ -18,7 +18,7 @@ use Test::Nginx;
 select STDERR; $| = 1;
 select STDOUT; $| = 1;
 
-my $t = Test::Nginx->new()->has(qw/http rewrite ngx_condition_module
+my $t = Test::Nginx->new()->has(qw/http rewrite ngx_expr_module
 	ngx_http_log_set_module/)->plan(10);
 
 $t->write_file_expand('nginx.conf', <<'EOF');
@@ -42,7 +42,7 @@ http {
         listen       127.0.0.1:8080;
         server_name  localhost;
 
-        condition special str_eq $arg_mode special;
+        expr special str_eq $arg_mode special;
 
         access_log %%TESTDIR%%/values.log values;
 
