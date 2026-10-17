@@ -19,7 +19,7 @@ select STDERR; $| = 1;
 select STDOUT; $| = 1;
 
 my $t = Test::Nginx->new()->has(qw/http rewrite ngx_expr_module
-	ngx_http_log_set_module/)->plan(10);
+	ngx_http_log_set_module/)->plan(14);
 
 $t->write_file_expand('nginx.conf', <<'EOF');
 
@@ -63,6 +63,13 @@ http {
             return 200 override;
         }
 
+        location = /conditional-parent {
+            when special {
+                log_set $field child;
+            }
+            return 200 parent;
+        }
+
         location = /response {
             add_header X-Value response;
             log_set $field $status:$sent_http_x_value;
@@ -84,6 +91,12 @@ like(http_get('/conditional?mode=other&value=two'), qr/200 OK/,
 	'conditional miss request');
 like(http_get('/override'), qr/200 OK/, 'local override request');
 like(http_get('/response'), qr/200 OK/, 'response variable request');
+like(http_get('/conditional-parent?mode=special'), qr/200 OK/,
+	'conditional child hit request');
+like(http_get('/conditional-parent?mode=other'), qr/200 OK/,
+	'conditional child miss request');
+
+$t->stop();
 
 my $log = $t->read_file('values.log');
 
@@ -97,5 +110,9 @@ like($log, qr{^/override\|local\|parent$}m,
 	'local definition replaces parent for the same variable');
 like($log, qr{^/response\|200:response\|parent$}m,
 	'log phase can use response variables');
+like($log, qr{^/conditional-parent\|child\|parent$}m,
+	'conditional child overrides inherited assignment on hit');
+like($log, qr{^/conditional-parent\|parent-200\|parent$}m,
+	'conditional child retains inherited assignment on miss');
 
 ###############################################################################
